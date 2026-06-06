@@ -1,0 +1,508 @@
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    cursor: none !important;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* ── Custom cursor ───────────────────────────────────────────── */
+
+#cursor-dot {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #c084fc;
+    pointer-events: none;
+    z-index: 99999;
+    /* Centre the element on the pointer */
+    translate: -50% -50%;
+    box-shadow: 0 0 10px rgba(192, 132, 252, 0.9),
+                0 0 20px rgba(192, 132, 252, 0.5);
+    transition: opacity 0.2s ease;
+    will-change: transform;
+}
+
+#cursor-ring {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(192, 132, 252, 0.6);
+    background: rgba(168, 85, 247, 0.06);
+    pointer-events: none;
+    z-index: 99998;
+    translate: -50% -50%;
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.2),
+                inset 0 0 8px rgba(168, 85, 247, 0.08);
+    transition: width  0.25s cubic-bezier(0.22, 1, 0.36, 1),
+                height 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 0.25s ease,
+                background   0.25s ease,
+                opacity      0.2s ease;
+    will-change: transform;
+}
+
+/* Hover state — ring expands */
+#cursor-ring.ring-hover {
+    width: 56px;
+    height: 56px;
+    border-color: rgba(192, 132, 252, 0.9);
+    background: rgba(168, 85, 247, 0.12);
+    box-shadow: 0 0 24px rgba(168, 85, 247, 0.4),
+                inset 0 0 12px rgba(168, 85, 247, 0.15);
+}
+
+/* Click state — ring shrinks */
+#cursor-ring.ring-click {
+    width: 22px;
+    height: 22px;
+    border-color: #c084fc;
+    background: rgba(192, 132, 252, 0.2);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: black;
+    color: #e7e7e7;
+    min-height: 100vh;
+    line-height: 1.5;
+}
+
+/* ── Decorative background elements ─────────────────────────── */
+
+.image-gradient {
+    position: absolute;
+    top: 0;
+    right: 0;
+    opacity: 0.5;
+    z-index: -1;
+}
+
+.layer-blur {
+    height: 0;
+    width: 30rem;
+    position: absolute;
+    top: 20%;
+    right: 0;
+    box-shadow: 0 0 700px 15px white;
+    transform: rotate(-30deg);
+    z-index: -1;
+}
+
+/* ── Hidden video source ─────────────────────────────────────── */
+
+.bg-video-hidden {
+    position: fixed;
+    top: -9999px;
+    left: -9999px;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* ── Background canvas ───────────────────────────────────────── */
+
+.background-video {
+    position: fixed;
+    right: 0;
+    top: 15vh;
+    width: 50vw;
+    height: 85vh;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: 16px 0 0 16px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 18%);
+            mask-image: linear-gradient(to right, transparent 0%, black 18%);
+}
+
+/* ── Scroll zone ─────────────────────────────────────────────── */
+
+#video-scroll-zone {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.hero-sticky-wrap {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+/* ── Hero Content ─────────────────────────────────────────────── */
+
+.content {
+    position: relative;
+    z-index: 10;
+    max-width: 48%;
+    padding-left: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+    animation: contentFadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes contentFadeUp {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Tag badge */
+.tag-box {
+    display: inline-flex;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.38rem 1rem;
+    border-radius: 50px;
+    border: 1px solid rgba(168, 85, 247, 0.45);
+    background: rgba(88, 28, 135, 0.18);
+    color: #c084fc;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0 0 18px rgba(168, 85, 247, 0.15);
+    transition: box-shadow 0.3s ease;
+}
+
+.tag:hover {
+    box-shadow: 0 0 32px rgba(168, 85, 247, 0.35);
+}
+
+/* Headline */
+.content h1 {
+    font-size: clamp(2.8rem, 5.5vw, 5rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 30%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Body paragraph */
+.content p {
+    font-size: clamp(0.95rem, 1.4vw, 1.15rem);
+    color: rgba(231, 231, 231, 0.62);
+    max-width: 38ch;
+    line-height: 1.7;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 5rem;
+    z-index: 1000;
+    background: rgba(5, 5, 5, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 3rem;
+    font-weight: 300;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+.nav-link {
+    color: rgba(231, 231, 231, 0.75);
+    text-decoration: none;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+    color: #fff;
+}
+
+.btn-signin {
+    background-color: #a7a7a7;
+    color: black;
+    padding: 0.8rem 2rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-signin:hover {
+    background-color: white;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Triangle Subdivision Loader
+   — big ▽ cut into 9 triangles, lighting CW + glowing purple
+══════════════════════════════════════════════════════════════ */
+
+#loader-wrap {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #050505;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2.4rem;
+}
+
+#loader-svg {
+    width: 156px;
+    height: 156px;
+    overflow: visible;
+}
+
+/* ── Base triangle ───────────────────────────────────────────── */
+
+.tri {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scale(0.87); /* gap between adjacent triangles */
+    fill: rgba(83, 0, 160, 0.07);
+    stroke: #3d0a6b;
+    stroke-width: 0.8;
+    stroke-linejoin: round;
+    animation: triChase 1.8s ease-in-out infinite;
+}
+
+/* Stagger 9 triangles by 0.2s each → 1.8s total cycle */
+#tri0 { animation-delay: 0s;   }
+#tri1 { animation-delay: 0.2s; }
+#tri2 { animation-delay: 0.4s; }
+#tri3 { animation-delay: 0.6s; }
+#tri4 { animation-delay: 0.8s; }
+#tri5 { animation-delay: 1.0s; }
+#tri6 { animation-delay: 1.2s; }
+#tri7 { animation-delay: 1.4s; }
+#tri8 { animation-delay: 1.6s; }
+
+@keyframes triChase {
+    0%   { fill: rgba(83, 0, 160, 0.07); stroke: #3d0a6b; filter: none;           }
+    15%  { fill: #c084fc;                stroke: #e9d5ff; filter: url(#tri-glow); }
+    40%  { fill: rgba(83, 0, 160, 0.07); stroke: #3d0a6b; filter: none;           }
+    100% { fill: rgba(83, 0, 160, 0.07); stroke: #3d0a6b; filter: none;           }
+}
+
+/* ── Loader label ────────────────────────────────────────────── */
+
+#loader-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+#loader-pct {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+}
+
+#loader-text {
+    font-size: 0.58rem;
+    letter-spacing: 0.5em;
+    color: #3a0070;
+    text-transform: uppercase;
+    animation: labelPulse 2s ease-in-out infinite;
+}
+
+@keyframes labelPulse {
+    0%, 100% { color: #3a0070; }
+    50%      { color: #a855f7; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — Tablet  (≤ 1024px)
+══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+
+    header {
+        padding: 1.2rem 2.5rem;
+    }
+
+    header h1.logo {
+        font-size: 2rem;
+    }
+
+    .nav-links {
+        gap: 1.6rem;
+    }
+
+    .btn-signin {
+        padding: 0.6rem 1.4rem;
+        font-size: 0.88rem;
+    }
+
+    /* Canvas: narrower on tablet */
+    .background-video {
+        width: 48vw;
+        top: 12vh;
+        height: 88vh;
+    }
+
+    /* Hero text */
+    .content {
+        max-width: 52%;
+        padding-left: 2rem;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile  (≤ 768px)
+══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+
+    /* ── Hide custom cursor on touch ── */
+    #cursor-dot,
+    #cursor-ring {
+        display: none !important;
+    }
+
+    *, *::before, *::after {
+        cursor: auto !important;
+    }
+
+    /* ── Header ── */
+    header {
+        padding: 1rem 1.4rem;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+    }
+
+    header h1.logo {
+        font-size: 1.5rem;
+        letter-spacing: 0.08em;
+    }
+
+    .nav-links {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        gap: 1.2rem;
+        padding-bottom: 0.4rem;
+    }
+
+    .nav-link {
+        font-size: 0.82rem;
+    }
+
+    .btn-signin {
+        padding: 0.55rem 1.2rem;
+        font-size: 0.82rem;
+    }
+
+    /* ── Background canvas: full-width behind content ── */
+    .background-video {
+        width: 100vw;
+        height: 55vh;
+        top: auto;
+        bottom: 0;
+        right: 0;
+        border-radius: 0;
+        opacity: 0.35;
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+                mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+    }
+
+    /* ── Hero ── */
+    .hero-sticky-wrap {
+        padding: 0 1.2rem;
+        align-items: flex-end;
+        padding-bottom: 3rem;
+    }
+
+    .content {
+        max-width: 100%;
+        padding-left: 0;
+        gap: 1.2rem;
+    }
+
+    .content h1 {
+        font-size: clamp(2.2rem, 9vw, 3.2rem);
+    }
+
+    .content p {
+        font-size: 0.95rem;
+        max-width: 100%;
+    }
+
+    /* ── Loader ── */
+    #loader-svg {
+        width: 110px;
+        height: 110px;
+    }
+
+    /* ── Generic page-wrap (about/work/contact) ── */
+    .page-wrap {
+        padding: 7rem 1.4rem 4rem !important;
+        grid-template-columns: 1fr !important;
+        gap: 3rem !important;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — Small phone  (≤ 480px)
+══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 480px) {
+
+    header h1.logo {
+        font-size: 1.25rem;
+    }
+
+    .nav-links {
+        gap: 0.9rem;
+    }
+
+    .nav-link {
+        font-size: 0.76rem;
+    }
+
+    .btn-signin {
+        display: none; /* hide on very small screens to avoid overflow */
+    }
+}

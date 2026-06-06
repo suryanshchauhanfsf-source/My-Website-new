@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="About Suryansh — designer, developer, and creative technologist.">
+    <title>About — Suryansh</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+
+        .page-wrap {
+            min-height: 100vh;
+            padding: 10rem 5rem 5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Decorative blurs ── */
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .blob-1 {
+            width: 520px; height: 520px;
+            background: rgba(139, 28, 217, 0.18);
+            top: -100px; right: -100px;
+        }
+        .blob-2 {
+            width: 380px; height: 380px;
+            background: rgba(88, 28, 135, 0.14);
+            bottom: 80px; left: -80px;
+        }
+
+        /* ── Section header ── */
+        .section-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #a855f7;
+            margin-bottom: 1rem;
+        }
+
+        /* ── Hero bio ── */
+        .about-hero {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5rem;
+            align-items: start;
+            margin-bottom: 7rem;
+            animation: fadeUp 0.8s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        .about-hero h1 {
+            font-size: clamp(2.8rem, 4.5vw, 4.2rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #fff 35%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+        }
+
+        .about-hero p {
+            font-size: 1.05rem;
+            color: rgba(231,231,231,0.65);
+            line-height: 1.8;
+            max-width: 46ch;
+        }
+
+        .about-hero p + p { margin-top: 1rem; }
+
+        /* Avatar / visual side */
+        .about-visual {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 0.5rem;
+        }
+
+        .avatar-card {
+            width: 100%;
+            max-width: 340px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(168,85,247,0.2);
+            border-radius: 24px;
+            padding: 2.5rem;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            box-shadow: 0 0 60px rgba(139,28,217,0.12);
+        }
+
+        .avatar-initials {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7c3aed, #c084fc);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; font-weight: 700; color: #fff;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 30px rgba(192,132,252,0.4);
+        }
+
+        .avatar-card h3 {
+            font-size: 1.2rem; font-weight: 600; color: #fff;
+            margin-bottom: 0.3rem;
+        }
+
+        .avatar-card span {
+            font-size: 0.82rem; color: #a855f7; letter-spacing: 0.06em;
+        }
+
+        .avatar-stats {
+            margin-top: 1.8rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .stat {
+            background: rgba(168,85,247,0.08);
+            border: 1px solid rgba(168,85,247,0.15);
+            border-radius: 12px;
+            padding: 0.9rem 1rem;
+        }
+
+        .stat-num {
+            font-size: 1.4rem; font-weight: 700; color: #c084fc;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.72rem; color: rgba(231,231,231,0.5);
+            letter-spacing: 0.05em; text-transform: uppercase;
+        }
+
+        /* ── Skills ── */
+        .skills-section {
+            margin-bottom: 7rem;
+            animation: fadeUp 0.8s 0.15s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        .skills-section h2 {
+            font-size: 1.8rem; font-weight: 700; color: #fff;
+            margin-bottom: 2rem;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .skill-pill {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(168,85,247,0.2);
+            border-radius: 14px;
+            padding: 1.1rem 1.4rem;
+            display: flex; align-items: center; gap: 0.75rem;
+            transition: border-color 0.25s, background 0.25s, transform 0.2s;
+        }
+
+        .skill-pill:hover {
+            border-color: rgba(192,132,252,0.5);
+            background: rgba(168,85,247,0.1);
+            transform: translateY(-3px);
+        }
+
+        .skill-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: linear-gradient(135deg, #5b21b6, #7c3aed);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; flex-shrink: 0;
+        }
+
+        .skill-name {
+            font-size: 0.9rem; font-weight: 500; color: rgba(231,231,231,0.85);
+        }
+
+        /* ── Timeline ── */
+        .timeline-section {
+            animation: fadeUp 0.8s 0.3s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        .timeline-section h2 {
+            font-size: 1.8rem; font-weight: 700; color: #fff;
+            margin-bottom: 2.5rem;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 6px; bottom: 6px;
+            width: 1px;
+            background: linear-gradient(to bottom, #7c3aed, transparent);
+        }
+
+        .tl-item {
+            position: relative;
+            padding-bottom: 2.8rem;
+            padding-left: 1.5rem;
+        }
+
+        .tl-item::before {
+            content: '';
+            position: absolute;
+            left: -2.45rem; top: 6px;
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #7c3aed;
+            box-shadow: 0 0 12px rgba(124,58,237,0.7);
+        }
+
+        .tl-year {
+            font-size: 0.72rem; letter-spacing: 0.12em;
+            color: #a855f7; text-transform: uppercase;
+            margin-bottom: 0.35rem;
+        }
+
+        .tl-title {
+            font-size: 1.05rem; font-weight: 600; color: #fff;
+            margin-bottom: 0.3rem;
+        }
+
+        .tl-sub {
+            font-size: 0.88rem; color: rgba(231,231,231,0.5);
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(28px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 1024px) {
+            .page-wrap { padding: 9rem 3rem 4rem; }
+            .about-hero { gap: 3rem; }
+        }
+
+        @media (max-width: 768px) {
+            .page-wrap { padding: 7rem 1.4rem 4rem; }
+            .about-hero {
+                grid-template-columns: 1fr;
+                gap: 2.5rem;
+                margin-bottom: 4rem;
+            }
+            .about-hero h1 { font-size: clamp(2.2rem, 8vw, 3rem); }
+            .about-visual { justify-content: flex-start; }
+            .avatar-card { max-width: 100%; }
+            .skills-grid { grid-template-columns: repeat(2, 1fr); }
+            .skills-section { margin-bottom: 4rem; }
+            .skills-section h2,
+            .timeline-section h2 { font-size: 1.5rem; }
+        }
+
+        @media (max-width: 480px) {
+            .skills-grid { grid-template-columns: 1fr; }
+            .avatar-stats { grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+            .stat { padding: 0.7rem 0.6rem; }
+            .stat-num { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Custom cursor -->
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <img class="image-gradient" src="gradient.png" alt="gradient">
+
+    <header>
+        <h1 class="logo">SURYANSH</h1>
+        <nav class="nav-links">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="about.html" class="nav-link" style="color:#fff;">About</a>
+            <a href="work.html" class="nav-link">Work</a>
+            <a href="contact.html" class="nav-link">Contact</a>
+        </nav>
+        <button class="btn-signin">SIGN UP</button>
+    </header>
+
+    <div class="page-wrap">
+
+        <!-- Bio hero -->
+        <div class="about-hero">
+            <div>
+                <p class="section-label">&#9670; Who I am</p>
+                <h1>Designer &amp;<br>Developer.</h1>
+                <p>I'm Suryansh — a creative technologist who sits at the intersection of design and engineering. I build products that look stunning and work flawlessly.</p>
+                <p>My focus is on crafting digital experiences that feel premium from the first pixel to the last interaction. Whether it's a brand identity or a full-stack web app, I bring the same obsession with quality.</p>
+            </div>
+            <div class="about-visual">
+                <div class="avatar-card">
+                    <div class="avatar-initials">S</div>
+                    <h3>Suryansh Chauhan</h3>
+                    <span>Design &bull; Code &bull; Strategy</span>
+                    <div class="avatar-stats">
+                        <div class="stat">
+                            <span class="stat-num">3+</span>
+                            <span class="stat-label">Years exp.</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num">20+</span>
+                            <span class="stat-label">Projects</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num">10+</span>
+                            <span class="stat-label">Clients</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num">∞</span>
+                            <span class="stat-label">Ambition</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="skills-section">
+            <p class="section-label">&#9670; Toolkit</p>
+            <h2>Skills &amp; Technologies</h2>
+            <div class="skills-grid">
+                <div class="skill-pill"><div class="skill-icon">⚡</div><span class="skill-name">HTML / CSS</span></div>
+                <div class="skill-pill"><div class="skill-icon">🟨</div><span class="skill-name">JavaScript</span></div>
+                <div class="skill-pill"><div class="skill-icon">⚛️</div><span class="skill-name">React</span></div>
+                <div class="skill-pill"><div class="skill-icon">🔺</div><span class="skill-name">Next.js</span></div>
+                <div class="skill-pill"><div class="skill-icon">🎨</div><span class="skill-name">Figma</span></div>
+                <div class="skill-pill"><div class="skill-icon">🌐</div><span class="skill-name">Node.js</span></div>
+                <div class="skill-pill"><div class="skill-icon">🗄️</div><span class="skill-name">PostgreSQL</span></div>
+                <div class="skill-pill"><div class="skill-icon">☁️</div><span class="skill-name">Vercel / AWS</span></div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-section">
+            <p class="section-label">&#9670; Journey</p>
+            <h2>Experience</h2>
+            <div class="timeline">
+                <div class="tl-item">
+                    <p class="tl-year">2024 — Present</p>
+                    <p class="tl-title">Freelance Designer &amp; Developer</p>
+                    <p class="tl-sub">Building brands and digital products for early-stage startups worldwide.</p>
+                </div>
+                <div class="tl-item">
+                    <p class="tl-year">2023</p>
+                    <p class="tl-title">Front-End Developer Intern</p>
+                    <p class="tl-sub">Delivered responsive UI components and design systems for a SaaS platform.</p>
+                </div>
+                <div class="tl-item">
+                    <p class="tl-year">2022</p>
+                    <p class="tl-title">Started Coding &amp; Designing</p>
+                    <p class="tl-sub">Fell in love with the intersection of aesthetics and technology.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const dot  = document.getElementById('cursor-dot');
+        const ring = document.getElementById('cursor-ring');
+        let mx=-100,my=-100,rx=-100,ry=-100;
+        document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.transform=`translate(${mx}px,${my}px)`;});
+        document.addEventListener('mouseover',e=>{if(e.target.closest('a,button'))ring.classList.add('ring-hover');});
+        document.addEventListener('mouseout',e=>{if(e.target.closest('a,button'))ring.classList.remove('ring-hover');});
+        document.addEventListener('mousedown',()=>ring.classList.add('ring-click'));
+        document.addEventListener('mouseup',()=>ring.classList.remove('ring-click'));
+        document.addEventListener('mouseleave',()=>{dot.style.opacity='0';ring.style.opacity='0';});
+        document.addEventListener('mouseenter',()=>{dot.style.opacity='1';ring.style.opacity='1';});
+        (function l(){rx+=(mx-rx)*0.11;ry+=(my-ry)*0.11;ring.style.transform=`translate(${rx}px,${ry}px)`;requestAnimationFrame(l);})();
+    </script>
+</body>
+</html>

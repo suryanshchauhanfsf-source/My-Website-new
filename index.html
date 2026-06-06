@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Suryansh's personal website — portfolio and creative work.">
+    <title>Suryansh</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Custom cursor -->
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <!-- Canvas renders pre-captured frames — equally smooth in both directions -->
+    <canvas id="bg-canvas" class="background-video"></canvas>
+
+    <!-- Video is hidden; used only as a frame source during capture -->
+    <video id="bg-video" class="bg-video-hidden" muted playsinline preload="auto">
+        <source src="bg_video.mp4" type="video/mp4">
+    </video>
+
+    <!-- Downward triangle subdivided into 9 triangles, filling CW with glow -->
+    <div id="loader-wrap">
+        <svg id="loader-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <!-- Double-layer glow filter for lit triangles -->
+                <filter id="tri-glow" x="-80%" y="-80%" width="260%" height="260%">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b1" />
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="b2" />
+                    <feMerge>
+                        <feMergeNode in="b2" />
+                        <feMergeNode in="b1" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+            </defs>
+
+            <!--
+              Big downward triangle: A(20,30) B(180,30) C(100,170)
+              Subdivided n=3 → 9 small triangles.
+              Grid points (i,j) = A + i*(B-A)/3 + j*(C-A)/3:
+                P00=(20,30)  P10=(73.3,30) P20=(126.7,30) P30=(180,30)
+                P01=(46.7,76.7) P11=(100,76.7) P21=(153.3,76.7)
+                P02=(73.3,123.3) P12=(126.7,123.3)
+                P03=(100,170)
+
+              Clockwise fill order starting top-left →
+              across top → down right → bottom apex → up left → center
+            -->
+            <g id="tri-group">
+                <polygon class="tri" id="tri0" points="20,30 73.3,30 46.7,76.7" />
+                <polygon class="tri" id="tri1" points="73.3,30 100,76.7 46.7,76.7" />
+                <polygon class="tri" id="tri2" points="73.3,30 126.7,30 100,76.7" />
+                <polygon class="tri" id="tri3" points="126.7,30 153.3,76.7 100,76.7" />
+                <polygon class="tri" id="tri4" points="126.7,30 180,30 153.3,76.7" />
+                <polygon class="tri" id="tri5" points="100,76.7 153.3,76.7 126.7,123.3" />
+                <polygon class="tri" id="tri6" points="73.3,123.3 126.7,123.3 100,170" />
+                <polygon class="tri" id="tri7" points="46.7,76.7 100,76.7 73.3,123.3" />
+                <polygon class="tri" id="tri8" points="100,76.7 126.7,123.3 73.3,123.3" />
+            </g>
+        </svg>
+
+        <div id="loader-label">
+            <span id="loader-pct">0%</span>
+            <span id="loader-text">LOADING</span>
+        </div>
+    </div>
+
+    <img class="image-gradient" src="gradient.png" alt="gradient">
+    <div class="layer-blur"></div>
+
+    <header>
+        <h1 class="logo">SURYANSH</h1>
+
+        <nav class="nav-links">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="about.html" class="nav-link">About</a>
+            <a href="work.html" class="nav-link">Work</a>
+            <a href="contact.html" class="nav-link">Contact</a>
+        </nav>
+
+        <button class="btn-signin">SIGN UP</button>
+    </header>
+
+    <div id="video-scroll-zone">
+        <div class="hero-sticky-wrap">
+            <div class="content">
+                <div class="tag-box">
+                    <div class="tag">INTRODUCING &wedbar;</div>
+                </div>
+                <h1>Email For<br>DEVELOPERS</h1>
+                <p>A design-led agency that helps early-stage tech startups with brand identity, product design, and websites.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ═══════════════════════════════════════════════════════════════
+           Canvas-based scroll scrubber
+           — captures every Nth frame from the video into ImageBitmap[]
+           — lerps on a floating-point frame index → identical smoothness
+             whether you scroll down OR up
+        ═══════════════════════════════════════════════════════════════ */
+
+        // ── DOM refs ──────────────────────────────────────────────────
+        const video = document.getElementById('bg-video');
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        const loaderWrap = document.getElementById('loader-wrap');
+        const loaderPct = document.getElementById('loader-pct');
+        const scrollZone = document.getElementById('video-scroll-zone');
+
+        // ── config ────────────────────────────────────────────────────
+        const CAPTURE_FPS = 12;   // frames per second to capture
+        const MAX_CAPTURE_W = 1280; // max capture width (height auto from aspect ratio)
+        const SCROLL_PX_PER_FRAME = 28;   // scroll pixels needed per frame
+        const LERP_FACTOR = 0.10; // 0.05 = floaty, 0.20 = snappy
+
+        // ── state ─────────────────────────────────────────────────────
+        let frames = [];    // ImageBitmap[]
+        let isReady = false;
+        let targetFrame = 0;     // where scroll wants to be (float)
+        let dispFrame = 0;     // current rendered position (float)
+        let videoScrollRange = 0;     // total scroll pixels for video playback
+
+        // ── helpers ───────────────────────────────────────────────────
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+        const lerp = (a, b, t) => a + (b - a) * t;
+
+        function resizeCanvas() {
+            // Match pixel buffer exactly to the CSS-rendered size of the canvas
+            canvas.width = canvas.clientWidth || Math.round(window.innerWidth * 0.5);
+            canvas.height = canvas.clientHeight || Math.round(window.innerHeight * 0.7);
+        }
+        requestAnimationFrame(resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+        function drawCover(bmp) {
+            const cw = canvas.width, ch = canvas.height;
+            // object-fit: cover — scale so the bitmap fills the canvas in both axes
+            const scale = Math.max(cw / bmp.width, ch / bmp.height);
+            const w = bmp.width * scale;
+            const h = bmp.height * scale;
+            ctx.clearRect(0, 0, cw, ch);
+            ctx.drawImage(bmp, (cw - w) / 2, (ch - h) / 2, w, h);
+        }
+
+        // ── frame capture ─────────────────────────────────────────────
+        async function captureFrames() {
+            const duration = video.duration;
+            const total = Math.ceil(duration * CAPTURE_FPS);
+
+            // Derive capture dimensions from the video's real aspect ratio
+            const vidW = video.videoWidth || 1920;
+            const vidH = video.videoHeight || 1080;
+            const captureW = Math.min(vidW, MAX_CAPTURE_W);
+            const captureH = Math.round(captureW / (vidW / vidH));
+
+            // Offscreen canvas sized to the video's true aspect ratio
+            const off = Object.assign(document.createElement('canvas'),
+                { width: captureW, height: captureH });
+            const offCtx = off.getContext('2d');
+
+            for (let i = 0; i < total; i++) {
+                video.currentTime = i / CAPTURE_FPS;
+                await new Promise(r => video.addEventListener('seeked', r, { once: true }));
+
+                offCtx.drawImage(video, 0, 0, captureW, captureH);
+                frames[i] = await createImageBitmap(off);
+
+                loaderPct.textContent = Math.round((i + 1) / total * 100) + '%';
+            }
+
+            // Set scroll zone height so there's enough scroll to cover all frames
+            videoScrollRange = total * SCROLL_PX_PER_FRAME;
+            scrollZone.style.height = (videoScrollRange + window.innerHeight) + 'px';
+
+            // Fade out loader
+            loaderWrap.style.transition = 'opacity 0.6s ease';
+            loaderWrap.style.opacity = '0';
+            setTimeout(() => loaderWrap.style.display = 'none', 650);
+
+            isReady = true;
+        }
+
+        // ── render loop ───────────────────────────────────────────────
+        function render() {
+            requestAnimationFrame(render);
+            if (!isReady || !frames.length) return;
+
+            dispFrame = lerp(dispFrame, targetFrame, LERP_FACTOR);
+            const idx = Math.round(clamp(dispFrame, 0, frames.length - 1));
+            if (frames[idx]) drawCover(frames[idx]);
+        }
+
+        // ── init ──────────────────────────────────────────────────────
+        video.addEventListener('loadedmetadata', captureFrames);
+        requestAnimationFrame(render);
+
+        // ── scroll → target frame ─────────────────────────────────────
+        window.addEventListener('scroll', () => {
+            if (!isReady || videoScrollRange === 0) return;
+            targetFrame = clamp(
+                (window.scrollY / videoScrollRange) * (frames.length - 1),
+                0, frames.length - 1
+            );
+        }, { passive: true });
+    </script>
+
+    <script>
+        /* ── Custom cursor ──────────────────────────────────────────── */
+        const dot  = document.getElementById('cursor-dot');
+        const ring = document.getElementById('cursor-ring');
+
+        let mx = -100, my = -100; // raw mouse position
+        let rx = -100, ry = -100; // ring lerp position
+
+        // Snap dot instantly; ring lerps behind
+        document.addEventListener('mousemove', e => {
+            mx = e.clientX;
+            my = e.clientY;
+            dot.style.transform = `translate(${mx}px, ${my}px)`;
+        });
+
+        // Grow ring on hoverable elements
+        document.addEventListener('mouseover', e => {
+            if (e.target.closest('a, button, [data-hover]')) {
+                ring.classList.add('ring-hover');
+            }
+        });
+        document.addEventListener('mouseout', e => {
+            if (e.target.closest('a, button, [data-hover]')) {
+                ring.classList.remove('ring-hover');
+            }
+        });
+
+        // Shrink on click
+        document.addEventListener('mousedown', () => ring.classList.add('ring-click'));
+        document.addEventListener('mouseup',   () => ring.classList.remove('ring-click'));
+
+        // Hide when leaving / entering window
+        document.addEventListener('mouseleave', () => {
+            dot.style.opacity  = '0';
+            ring.style.opacity = '0';
+        });
+        document.addEventListener('mouseenter', () => {
+            dot.style.opacity  = '1';
+            ring.style.opacity = '1';
+        });
+
+        // RAF loop: lerp the ring
+        (function lerpRing() {
+            rx += (mx - rx) * 0.11;
+            ry += (my - ry) * 0.11;
+            ring.style.transform = `translate(${rx}px, ${ry}px)`;
+            requestAnimationFrame(lerpRing);
+        })();
+    </script>
+
+</body>
+
+</html>

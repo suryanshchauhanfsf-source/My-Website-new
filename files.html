@@ -471,12 +471,24 @@
         #error-box {
             display: none;
             margin-top: 1.2rem;
-            padding: 0.9rem 1.1rem;
+            padding: 1rem 1.2rem;
             background: rgba(239,68,68,0.08);
-            border: 1px solid rgba(239,68,68,0.25);
-            border-radius: 10px;
-            font-size: 0.84rem;
-            color: rgba(252,165,165,0.9);
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 12px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: rgba(252,165,165,0.95);
+        }
+
+        #error-box strong {
+            color: #fca5a5;
+            font-weight: 700;
+        }
+
+        #error-box em {
+            font-style: normal;
+            color: #fcd34d;
+            font-weight: 600;
         }
 
         /* ─── Info cards ─────────────────────────────────────────── */
@@ -841,24 +853,46 @@
     const histList    = document.getElementById('history-list');
 
     let selectedFile = null;
+    const MAX_SIZE = 1 * 1024 * 1024 * 1024; // 1 GB — catbox.moe hard limit
     const history = JSON.parse(localStorage.getItem('suryansh_file_history') || '[]');
 
     function fmtSize(bytes) {
-        if (bytes < 1024)      return bytes + ' B';
-        if (bytes < 1048576)   return (bytes/1024).toFixed(1) + ' KB';
-        if (bytes < 1073741824)return (bytes/1048576).toFixed(1) + ' MB';
-        return (bytes/1073741824).toFixed(2) + ' GB';
+        if (bytes < 1024)       return bytes + ' B';
+        if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+        return (bytes / 1073741824).toFixed(2) + ' GB';
+    }
+
+    function showError(msg) {
+        errorBox.style.display = 'block';
+        errorBox.innerHTML = msg;
+        resultBox.style.display = 'none';
+        progressWrap.style.display = 'none';
     }
 
     function setFile(file) {
+        errorBox.style.display   = 'none';
+        resultBox.style.display  = 'none';
+        progressWrap.style.display = 'none';
+
+        // Block oversized files immediately at selection
+        if (file.size > MAX_SIZE) {
+            selectedFile = null;
+            fileInput.value = '';
+            filePreview.style.display = 'none';
+            uploadBtn.style.display   = 'none';
+            showError(
+                `<strong>⚠ File too large:</strong> <em>${file.name}</em> is <strong>${fmtSize(file.size)}</strong>.<br>` +
+                `The maximum supported file size is <strong>1 GB</strong>. Please choose a smaller file.`
+            );
+            return;
+        }
+
         selectedFile = file;
         previewName.textContent = file.name;
         previewSize.textContent = fmtSize(file.size);
         filePreview.style.display = 'flex';
-        uploadBtn.style.display  = 'flex';
-        resultBox.style.display  = 'none';
-        errorBox.style.display   = 'none';
-        progressWrap.style.display = 'none';
+        uploadBtn.style.display   = 'flex';
     }
 
     function clearFile() {
@@ -895,6 +929,15 @@
     /* ─── Upload ────────────────────────────────────────────────── */
     uploadBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
+
+        // Double-check size limit before any network request
+        if (selectedFile.size > MAX_SIZE) {
+            showError(
+                `<strong>⚠ File too large:</strong> <em>${selectedFile.name}</em> is <strong>${fmtSize(selectedFile.size)}</strong>.<br>` +
+                `The maximum supported file size is <strong>1 GB</strong>. Please choose a smaller file.`
+            );
+            return;
+        }
 
         uploadBtn.disabled = true;
         uploadBtn.innerHTML = '<div class="spinner"></div> Uploading…';

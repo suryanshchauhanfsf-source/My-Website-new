@@ -768,8 +768,8 @@
                     </button>
                 </div>
                 <p class="result-note">
-                    ⚡ Link hosted via <strong>catbox.moe</strong> — files stored for up to 72 hours (anonymous uploads) or permanently with a free account.
-                    Anyone with this link can download your file.
+                    ⚡ Link hosted via <strong>gofile.io</strong> — no file size limit, no sign-up needed.
+                    Anyone with this link can view and download your file directly.
                 </p>
             </div>
         </div>
@@ -780,8 +780,8 @@
                 <div class="info-card-icon">
                     <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
                 </div>
-                <div class="info-card-title">Any File Type</div>
-                <div class="info-card-desc">Images, videos, documents, archives — everything is supported.</div>
+                <div class="info-card-title">No Size Limit</div>
+                <div class="info-card-desc">Upload files of any size — from a few KB to 50 GB and beyond.</div>
             </div>
             <div class="info-card">
                 <div class="info-card-icon">
@@ -853,44 +853,38 @@
     const histList    = document.getElementById('history-list');
 
     let selectedFile = null;
-    const MAX_SIZE = 1 * 1024 * 1024 * 1024; // 1 GB — catbox.moe hard limit
+    let activeXHR    = null;
     const history = JSON.parse(localStorage.getItem('suryansh_file_history') || '[]');
 
     function fmtSize(bytes) {
-        if (bytes < 1024)       return bytes + ' B';
-        if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + ' KB';
-        if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
-        return (bytes / 1073741824).toFixed(2) + ' GB';
+        if (bytes < 1024)              return bytes + ' B';
+        if (bytes < 1048576)           return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1073741824)        return (bytes / 1048576).toFixed(1) + ' MB';
+        if (bytes < 1099511627776)     return (bytes / 1073741824).toFixed(2) + ' GB';
+        return (bytes / 1099511627776).toFixed(2) + ' TB';
+    }
+
+    function fmtSpeed(bytesPerSec) {
+        if (bytesPerSec < 1024)       return bytesPerSec.toFixed(0) + ' B/s';
+        if (bytesPerSec < 1048576)    return (bytesPerSec / 1024).toFixed(1) + ' KB/s';
+        if (bytesPerSec < 1073741824) return (bytesPerSec / 1048576).toFixed(1) + ' MB/s';
+        return (bytesPerSec / 1073741824).toFixed(2) + ' GB/s';
     }
 
     function showError(msg) {
         errorBox.style.display = 'block';
         errorBox.innerHTML = msg;
-        resultBox.style.display = 'none';
+        resultBox.style.display  = 'none';
         progressWrap.style.display = 'none';
     }
 
     function setFile(file) {
-        errorBox.style.display   = 'none';
-        resultBox.style.display  = 'none';
+        errorBox.style.display     = 'none';
+        resultBox.style.display    = 'none';
         progressWrap.style.display = 'none';
-
-        // Block oversized files immediately at selection
-        if (file.size > MAX_SIZE) {
-            selectedFile = null;
-            fileInput.value = '';
-            filePreview.style.display = 'none';
-            uploadBtn.style.display   = 'none';
-            showError(
-                `<strong>⚠ File too large:</strong> <em>${file.name}</em> is <strong>${fmtSize(file.size)}</strong>.<br>` +
-                `The maximum supported file size is <strong>1 GB</strong>. Please choose a smaller file.`
-            );
-            return;
-        }
-
         selectedFile = file;
-        previewName.textContent = file.name;
-        previewSize.textContent = fmtSize(file.size);
+        previewName.textContent   = file.name;
+        previewSize.textContent   = fmtSize(file.size);
         filePreview.style.display = 'flex';
         uploadBtn.style.display   = 'flex';
     }
@@ -926,60 +920,88 @@
         if (!e.target.closest('label')) fileInput.click();
     });
 
-    /* ─── Upload ────────────────────────────────────────────────── */
+    /* ─── Upload via gofile.io (unlimited size, real XHR progress) ─ */
+    const UPLOAD_BTN_DEFAULT = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="white" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload &amp; Generate Link`;
+
+    function resetUploadBtn() {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = UPLOAD_BTN_DEFAULT;
+    }
+
     uploadBtn.addEventListener('click', async () => {
         if (!selectedFile) return;
 
-        // Double-check size limit before any network request
-        if (selectedFile.size > MAX_SIZE) {
-            showError(
-                `<strong>⚠ File too large:</strong> <em>${selectedFile.name}</em> is <strong>${fmtSize(selectedFile.size)}</strong>.<br>` +
-                `The maximum supported file size is <strong>1 GB</strong>. Please choose a smaller file.`
-            );
-            return;
-        }
-
         uploadBtn.disabled = true;
-        uploadBtn.innerHTML = '<div class="spinner"></div> Uploading…';
+        uploadBtn.innerHTML = '<div class="spinner"></div> Preparing…';
         progressWrap.style.display = 'block';
-        resultBox.style.display = 'none';
-        errorBox.style.display  = 'none';
-
-        /* Simulate early progress while we wait for the real response */
-        let fake = 0;
-        const fakeTimer = setInterval(() => {
-            fake = Math.min(fake + Math.random() * 8, 85);
-            progressBar.style.width = fake + '%';
-            pctLabel.textContent = Math.round(fake) + '%';
-        }, 200);
+        resultBox.style.display    = 'none';
+        errorBox.style.display     = 'none';
+        progressBar.style.width    = '0%';
+        pctLabel.textContent       = '0%';
 
         try {
-            const formData = new FormData();
-            formData.append('reqtype', 'fileupload');
-            formData.append('time', '72h');
-            formData.append('fileToUpload', selectedFile);
+            /* Step 1 — get the best gofile server */
+            const serverRes = await fetch('https://api.gofile.io/servers');
+            if (!serverRes.ok) throw new Error('Could not reach gofile.io — check your connection.');
+            const serverJson = await serverRes.json();
+            if (serverJson.status !== 'ok') throw new Error('gofile.io server error: ' + serverJson.status);
+            const server = serverJson.data.servers[0].name;  // e.g. "store6"
 
-            const response = await fetch('https://litterbox.catbox.moe/resources/internals/api.php', {
-                method: 'POST',
-                body: formData
+            uploadBtn.innerHTML = '<div class="spinner"></div> Uploading…';
+
+            /* Step 2 — upload with XHR for real progress */
+            const url = await new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                const xhr = new XMLHttpRequest();
+                activeXHR = xhr;
+                let startTime = Date.now();
+                let lastLoaded = 0;
+
+                xhr.upload.addEventListener('progress', e => {
+                    if (!e.lengthComputable) return;
+                    const pct   = Math.round((e.loaded / e.total) * 100);
+                    const elapsed = (Date.now() - startTime) / 1000 || 0.001;
+                    const speed = (e.loaded - lastLoaded) / elapsed;
+                    lastLoaded  = e.loaded;
+                    startTime   = Date.now();
+
+                    progressBar.style.width = pct + '%';
+                    pctLabel.textContent    = pct + '%  ·  ' + fmtSpeed(speed);
+                });
+
+                xhr.addEventListener('load', () => {
+                    activeXHR = null;
+                    try {
+                        const res = JSON.parse(xhr.responseText);
+                        if (res.status !== 'ok') {
+                            reject(new Error(res.message || 'Upload failed.'));
+                        } else {
+                            resolve(res.data.downloadPage);
+                        }
+                    } catch {
+                        reject(new Error('Invalid response from server.'));
+                    }
+                });
+
+                xhr.addEventListener('error',  () => { activeXHR = null; reject(new Error('Network error — upload failed.')); });
+                xhr.addEventListener('abort',  () => { activeXHR = null; reject(new Error('Upload cancelled.')); });
+                xhr.addEventListener('timeout',() => { activeXHR = null; reject(new Error('Upload timed out.')); });
+
+                xhr.open('POST', `https://${server}.gofile.io/contents/uploadfile`);
+                xhr.timeout = 0; // no timeout for large files
+                xhr.send(formData);
             });
 
-            clearInterval(fakeTimer);
-
-            if (!response.ok) throw new Error(`Server error: ${response.status}`);
-            const url = (await response.text()).trim();
-
-            if (!url.startsWith('http')) throw new Error(url || 'Upload failed — unexpected response.');
-
-            /* Complete progress bar */
+            /* Done */
             progressBar.style.width = '100%';
-            pctLabel.textContent = '100%';
-
-            await new Promise(r => setTimeout(r, 400));
+            pctLabel.textContent    = '100%  ·  Done!';
+            await new Promise(r => setTimeout(r, 500));
             progressWrap.style.display = 'none';
 
-            shareLink.textContent = url;
-            resultBox.style.display = 'block';
+            shareLink.textContent      = url;
+            resultBox.style.display    = 'block';
 
             /* Save to history */
             history.unshift({ name: selectedFile.name, url, ts: Date.now() });
@@ -988,13 +1010,10 @@
             renderHistory();
 
         } catch (err) {
-            clearInterval(fakeTimer);
             progressWrap.style.display = 'none';
-            errorBox.style.display = 'block';
-            errorBox.textContent = '⚠ ' + err.message;
+            showError('⚠ ' + err.message);
         } finally {
-            uploadBtn.disabled = false;
-            uploadBtn.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="white" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload &amp; Generate Link`;
+            resetUploadBtn();
         }
     });
 
